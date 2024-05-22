@@ -15,14 +15,9 @@ const log = require("../../../../post-log");
 module.exports = {
   path: "",
   method: "POST",
-  Auth: false,
+  Auth: true,
   run: async (req, res, mongo_client) => {
-    // // down for maintenance
-    // return res.status(503).json({
-    //   status: "error",
-    //   error: "Service Unavailable",
-    // });
-
+    // down for maintenance
     const { user_id, item, token } = req.body;
     let [itemid, serial] = item;
     const unique_token = Buffer.from(JSON.stringify(item)).toString("base64");

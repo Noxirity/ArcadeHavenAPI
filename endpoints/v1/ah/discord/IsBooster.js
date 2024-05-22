@@ -7,6 +7,8 @@ module.exports = {
   method: "GET",
   Auth: false,
   run: async (req, res, mongo_client) => {
+    return res.status(400).json({ error: "This endpoint is disabled" });
+
     const { discord_id } = req.query;
     const url = checkBoosterUrl + discord_id;
 

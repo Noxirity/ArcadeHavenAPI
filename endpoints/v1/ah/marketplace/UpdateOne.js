@@ -5,6 +5,8 @@ module.exports = {
   method: "POST",
   Auth: true,
   run: async (req, res, mongo_client) => {
+    // return res.status(404).send("This endpoint is disabled");
+
     try {
       const collection = mongo_client.db("ArcadeHaven").collection("items");
       const filter = req.body.filter;
@@ -23,11 +25,11 @@ module.exports = {
       }
 
       try {
-        // if (update["$inc"] && update["$inc"].quantitySold === 1) {
-        //   const item_id = filter.itemId;
-        //   const user_id = update["$push"].serials.u;
-        //   console.log(`User_${user_id} bought Item_${item_id}!`)
-        // }
+        if (update["$inc"] && update["$inc"].quantitySold === 1) {
+          const item_id = filter.itemId;
+          const user_id = update["$push"].serials.u;
+          console.log(`User_${user_id} bought Item_${item_id}!`)
+        }
       } catch (error) {
         console.log(error)
       }

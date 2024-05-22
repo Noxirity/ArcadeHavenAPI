@@ -1,7 +1,7 @@
 module.exports = {
   path: "",
   method: "GET",
-  Auth: false,
+  Auth: true,
   run: async (req, res, mongo_client) => {
     const Redis = require("ioredis");
     const redis_client = new Redis({

@@ -19,7 +19,7 @@ module.exports = {
               total_robux: { $sum: "$price" },
               total_documents: { $sum: 1 },
             },
-          },
+          }, 
         ])
         .toArray();
 

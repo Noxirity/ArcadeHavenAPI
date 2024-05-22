@@ -11,7 +11,7 @@ const log = require("../../../../post-log");
 module.exports = {
   path: "",
   method: "DELETE",
-  Auth: false,
+  Auth: true,
   run: async (req, res, mongo_client) => {
    try {
       console.log(req.body);

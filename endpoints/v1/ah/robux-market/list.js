@@ -24,7 +24,7 @@ const log = require("../../../../post-log");
 module.exports = {
   path: "",
   method: "POST",
-  Auth: false,
+  Auth: true,
   run: async (req, res, mongo_client) => {
     try {
       validateInput(req);
@@ -87,6 +87,28 @@ module.exports = {
           status: "error",
           error: "Invalid Owner",
         });
+      }
+
+      const price = gamepass_info.PriceInRobux;
+      if (!price) {
+        console.log("invalid price");
+        return res.status(400).json({
+          status: "error",
+          error: "Invalid Gamepass",
+        });
+      }
+
+      if (item_doc.value) {
+        const valuePerRobux = (item_doc.value || item_doc.rap) / price;
+        const ratePer10k = 10000 / valuePerRobux;
+        const minimum_rate = 0.075;
+        if (ratePer10k < minimum_rate) {
+          console.log("invalid rate");
+          return res.status(400).json({
+            status: "error",
+            error: `Invalid Rate-${minimum_rate}`,
+          });
+        }
       }
 
       const insert_doc = {

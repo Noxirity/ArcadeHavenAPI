@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const cluster = require("cluster");
 const numCPUs = require("os").cpus().length;
 
@@ -15,50 +17,10 @@ if (cluster.isMaster) {
     isShuttingDown = true;
     console.log("\nReceived SIGINT. Shutting down gracefully...");
 
-    const url = `https://discord.com/api/webhooks/1232016132211343492/y3VQj_WWsQrDX0bG34JjNeg0KrDuBaHQgfICMPb7QYN7-lilgMS3jDMRGWLBzv48P8vF`;
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        content: null,
-        embeds: [
-          {
-            title: "Arcade Haven is DOWN.",
-            description:
-              "You will be unable to join Arcade Haven at this time.",
-            color: 16711680,
-          },
-        ],
-        attachments: [],
-      }),
-    });
-
     for (const id in cluster.workers) {
       cluster.workers[id].process.kill("SIGINT");
       console.log(`Killed worker ${id}`);
     }
-  });
-
-  const url = `https://discord.com/api/webhooks/1232016132211343492/y3VQj_WWsQrDX0bG34JjNeg0KrDuBaHQgfICMPb7QYN7-lilgMS3jDMRGWLBzv48P8vF`;
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      content: null,
-      embeds: [
-        {
-          title: "Arcade Haven is back up.",
-          description:
-            "Arcade Haven is responding again and you should be able to join the game as normal.",
-          color: 8781568,
-        },
-      ],
-      attachments: [],
-    }),
   });
 } else {
   const express = require("express");
@@ -68,10 +30,9 @@ if (cluster.isMaster) {
   const app = express();
   const port = 3030;
 
-  const connection_string =
-    "mongodb://admin:lJX1yIbq22zYs83WVCCXV4UrF@173.212.199.199:27017/";
+  const connection_string = process.env.MONGO_URI;
   const client = new mongodb.MongoClient(connection_string);
-  const auth_key = "0cd511e5-f109-4816-a5c8-37d3bee6acd3";
+  const auth_key = process.env.API_AUTH;
 
   app.use(require("cors")());
   app.use(express.json());

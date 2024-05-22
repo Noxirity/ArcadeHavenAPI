@@ -16,7 +16,7 @@ module.exports = {
         );
         return;
       }
-      
+
       let docs = await mongo_client
         .db("ArcadeHaven")
         .collection("items")
@@ -46,6 +46,7 @@ module.exports = {
 
       await processItems();
 
+      console.log(`Fetched inventory for User_${userid}`);
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json");
       return res.end(
