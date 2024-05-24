@@ -55,7 +55,7 @@ module.exports = {
     };
 
     const selectItems = async () => {
-      const MAX_COMBINATIONS = 200;
+      const MAX_COMBINATIONS = 5000;
       const items = Object.keys(itemValues)
         .map((itemId) => ({
           itemId,
@@ -205,7 +205,7 @@ module.exports = {
       });
     }
 
-    await collection.bulkWrite(bulkOps);
+    // await collection.bulkWrite(bulkOps); // dont lock items during testing
 
     return res.status(200).send({
       matchedItems,
