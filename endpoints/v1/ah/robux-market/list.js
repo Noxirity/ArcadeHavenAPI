@@ -46,15 +46,15 @@ module.exports = {
       }
 
       // lets make sure they have less than 10 items listed at a time
-      const listed_count = await robux_market.countDocuments({
-        userId: user_id,
-      });
-      if (listed_count >= 10) {
-        return res.status(400).json({
-          status: "error",
-          error: "You can only list 10 items at a time",
-        });
-      }
+      // const listed_count = await robux_market.countDocuments({
+      //   userId: user_id,
+      // });
+      // if (listed_count >= 10) {
+      //   return res.status(400).json({
+      //     status: "error",
+      //     error: "You can only list 10 items at a time",
+      //   });
+      // }
 
       const item_doc = await items.findOne(
         { itemId: itemid },
@@ -99,16 +99,16 @@ module.exports = {
       }
 
       if (item_doc.value) {
-        const valuePerRobux = (item_doc.value || item_doc.rap) / price;
-        const ratePer10k = 10000 / valuePerRobux;
-        const minimum_rate = 0.075;
-        if (ratePer10k < minimum_rate) {
-          console.log("invalid rate");
-          return res.status(400).json({
-            status: "error",
-            error: `Invalid Rate-${minimum_rate}`,
-          });
-        }
+        // const valuePerRobux = (item_doc.value || item_doc.rap) / price;
+        // const ratePer10k = 10000 / valuePerRobux;
+        // const minimum_rate = 0.075;
+        // if (ratePer10k < minimum_rate) {
+        //   console.log("invalid rate");
+        //   return res.status(400).json({
+        //     status: "error",
+        //     error: `Invalid Rate-${minimum_rate}`,
+        //   });
+        // }
       }
 
       const insert_doc = {

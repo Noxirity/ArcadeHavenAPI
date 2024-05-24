@@ -89,10 +89,18 @@ if (cluster.isMaster) {
               await endpoint.run(req, res, client);
             }
           );
+
+          console.log(`Listening on /${relativePath}/${endpoint.path}`);
         }
       });
     });
   }
+
+  app.get("/", (req, res) => {
+    res.json({
+      status: "ok",
+    });
+  });
 
   begin_listening(path.join(__dirname, "endpoints"));
   app.listen(port, () => {
