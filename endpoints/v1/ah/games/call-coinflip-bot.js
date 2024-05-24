@@ -159,7 +159,6 @@ module.exports = {
       totalMatchedItems,
     } = await selectItems();
 
-    // now we need to lock all the serials that were selected
     const itemsToUpdate = Object.keys(matchedItems).map((itemId) => ({
       itemId,
       serials: matchedItems[itemId],
@@ -179,7 +178,6 @@ module.exports = {
       };
     });
 
-    // before we bulkWrite, we need to check if the items are still available in case they got locked during processing earlier
     let itemsToCheck = itemsToUpdate.map((item) => item.itemId);
     console.log(itemsToCheck);
     let docsToCheck = await collection
@@ -207,11 +205,9 @@ module.exports = {
       });
     }
 
-    // all items are available so lets lock them
     await collection.bulkWrite(bulkOps);
 
     return res.status(200).send({
-      // items are locked and ready to be used, we'll let the client know what items were selected and let them handle the rest
       matchedItems,
       totalMatchedValue,
       totalMatchedItems,
