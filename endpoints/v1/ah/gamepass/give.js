@@ -1,7 +1,7 @@
 module.exports = {
   path: "",
   method: "POST",
-  Auth: false,
+  Auth: true,
   run: async (req, res, mongo_client) => {
     try {
       const user_id = req.query.id;
