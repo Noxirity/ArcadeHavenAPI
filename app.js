@@ -2,6 +2,7 @@ require("dotenv").config();
 const cluster = require("cluster");
 const numCPUs = require("os").cpus().length;
 const express = require("express");
+const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const { MongoClient } = require("mongodb");
@@ -30,6 +31,7 @@ if (cluster.isMaster) {
   const client = new MongoClient(connectionString);
   const authKey = process.env.AUTH_KEY;
 
+  app.use(cors());
   app.use(express.json());
 
   client.connect((err) => {
@@ -65,6 +67,18 @@ if (cluster.isMaster) {
                 if (endpoint.authRequired && req.headers.authorization !== authKey) {
                   res.status(401).json({ status: "error", error: "Unauthorized" });
                   return;
+                }
+
+                const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+                const isRobloxServer = req.headers["user-agent"] === "Roblox/Linux";
+
+                if (isRobloxServer) {
+                  const collection = client.db("ArcadeHaven").collection("roblox_requests");
+                  collection.updateOne(
+                    { ip },
+                    { $inc: { requests: 1 } },
+                    { upsert: true }
+                  );
                 }
 
                 try {
