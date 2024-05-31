@@ -1,109 +1,89 @@
 require("dotenv").config();
-
 const cluster = require("cluster");
 const numCPUs = require("os").cpus().length;
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const { MongoClient } = require("mongodb");
 
 if (cluster.isMaster) {
   console.log(`Master ${process.pid} is running`);
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
+  Array.from({ length: numCPUs }).forEach(() => cluster.fork());
 
   cluster.on("exit", (worker, code, signal) => {
-    console.log(`Worker ${worker.process.pid} died`);
+    console.log(`[PID ${worker.process.pid}] died. Restarting...`);
+    cluster.fork();
   });
 
   process.on("SIGINT", () => {
-    isShuttingDown = true;
-    console.log("\nReceived SIGINT. Shutting down gracefully...");
-
-    for (const id in cluster.workers) {
-      cluster.workers[id].process.kill("SIGINT");
-      console.log(`Killed worker ${id}`);
-    }
+    console.log(`\n[MASTER] Killing all workers...`);
+    Object.values(cluster.workers).forEach((worker) => {
+      worker.process.kill("SIGINT");
+    });
+    console.log("[MASTER] All workers killed.");
+    process.exit();
   });
 } else {
-  const express = require("express");
-  const fs = require("fs");
-  const path = require("path");
-  const mongodb = require("mongodb");
   const app = express();
-  const port = 3030;
+  const port = process.env.PORT || 3001;
+  const connectionString = process.env.MONGO_URI;
+  const client = new MongoClient(connectionString);
+  const authKey = process.env.AUTH_KEY;
 
-  const connection_string = process.env.MONGO_URI;
-  const client = new mongodb.MongoClient(connection_string);
-  const auth_key = process.env.API_AUTH;
-
-  app.use(require("cors")());
   app.use(express.json());
 
-  function begin_listening(dir) {
+  client.connect((err) => {
+    if (err) {
+      console.error("Failed to connect to MongoDB", err);
+      process.exit(1);
+    }
+    console.log("Connected to MongoDB");
+  });
+
+  const beginListening = (dir) => {
     fs.readdir(dir, (err, files) => {
       if (err) {
+        console.error("Failed to read directory", err);
         return;
       }
 
       files.forEach((file) => {
         const filePath = path.join(dir, file);
-        const stats = fs.statSync(filePath);
+        fs.stat(filePath, (error, stats) => {
+          if (error) {
+            console.error("Failed to get file stats", error);
+            return;
+          }
 
-        if (stats.isDirectory()) {
-          begin_listening(filePath);
-        } else if (stats.isFile()) {
-          const endpoint = require(filePath);
-          const relativePath = path
-            .relative(path.join(__dirname, "endpoints"), filePath)
-            .split(".")
-            .slice(0, -1)
-            .join(".");
-          app[endpoint.method.toLowerCase()](
-            `/${relativePath}/${endpoint.path}`,
-            async (req, res) => {
-              if (endpoint.Auth) {
-                const token = req.headers.authorization || "";
-                if (token !== auth_key) {
-                  res.status(401).json({
-                    status: "error",
-                    error: "Unauthorized",
-                  });
+          if (stats.isDirectory()) {
+            beginListening(filePath);
+          } else if (stats.isFile()) {
+            const endpoint = require(filePath);
+            app[endpoint.method.toLowerCase()](
+              endpoint.path,
+              async (req, res) => {
+                if (endpoint.authRequired && req.headers.authorization !== authKey) {
+                  res.status(401).json({ status: "error", error: "Unauthorized" });
                   return;
                 }
+
+                try {
+                  await endpoint.run(req, res, client);
+                } catch (handlerError) {
+                  console.error("Endpoint handler error", handlerError);
+                  res.status(500).json({ status: "error", error: "Internal Server Error" });
+                }
               }
-
-              const ip =
-                req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-              const is_roblox_server =
-                req.headers["user-agent"] == "Roblox/Linux";
-
-              if (is_roblox_server) {
-                const collection = client
-                  .db("ArcadeHaven")
-                  .collection("roblox_requests");
-                collection.updateOne(
-                  { ip },
-                  { $inc: { requests: 1 } },
-                  { upsert: true }
-                );
-              }
-
-              await endpoint.run(req, res, client);
-            }
-          );
-
-          console.log(`Listening on /${relativePath}/${endpoint.path}`);
-        }
+            );
+          }
+        });
       });
     });
-  }
+  };
 
-  app.get("/", (req, res) => {
-    res.json({
-      status: "ok",
-    });
-  });
+  beginListening(path.join(__dirname, "endpoints"));
 
-  begin_listening(path.join(__dirname, "endpoints"));
   app.listen(port, () => {
-    console.log(`Worker ${process.pid} is running on port ${port}`);
+    console.log(`[PID ${process.pid}] Listening on http://localhost:${port}/`);
   });
 }
