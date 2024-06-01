@@ -13,7 +13,13 @@ module.exports = {
 
       if (!code_data) return res.status(200).send({ status: "Invalid Code" });
 
-      res.status(200).send({ status: "Valid Code", script: code_data.script });
+      res
+        .status(200)
+        .send({
+          status: "Valid Code",
+          script: code_data.script,
+          notification: code_data.notification,
+        });
     } catch (error) {
       console.error(error);
       res.status(500).send({ error: "Internal server error" });
