@@ -17,7 +17,6 @@ module.exports = {
   method: "POST",
   Auth: true,
   run: async (req, res, mongo_client) => {
-    // down for maintenance
     const { user_id, item, token } = req.body;
     let [itemid, serial] = item;
     const unique_token = Buffer.from(JSON.stringify(item)).toString("base64");
@@ -64,9 +63,8 @@ module.exports = {
           embeds: [
             {
               title: "Process Request Cancelled",
-              description: `**Reason**: Item ownership changed\n**Unique Token**: \`${unique_token}\`\n**Item**: \`${itemid}-${
-                serial + 1
-              }\`\nBuyer: \`${user_id}\`\nSeller: \`${listed_doc.userId}`,
+              description: `**Reason**: Item ownership changed\n**Unique Token**: \`${unique_token}\`\n**Item**: \`${itemid}-${serial + 1
+                }\`\nBuyer: \`${user_id}\`\nSeller: \`${listed_doc.userId}`,
               color: 16745728,
             },
           ],
@@ -115,13 +113,10 @@ module.exports = {
             embeds: [
               {
                 title: "[CRITICAL] Process Request Cancelled",
-                description: `**Reason**: Invalid token provided\n**Unique Token**: \`${unique_token}\`\n**Item**: \`${itemid}-${
-                  serial + 1
-                }\`\nBuyer: \`${user_id}\`\nSeller: \`${
-                  listed_doc.userId
-                }\`\n\nExpected Token: \`${
-                  listed_doc._PROCESSING
-                }\`\nProvided Token: \`${token}\``,
+                description: `**Reason**: Invalid token provided\n**Unique Token**: \`${unique_token}\`\n**Item**: \`${itemid}-${serial + 1
+                  }\`\nBuyer: \`${user_id}\`\nSeller: \`${listed_doc.userId
+                  }\`\n\nExpected Token: \`${listed_doc._PROCESSING
+                  }\`\nProvided Token: \`${token}\``,
                 color: 16745728,
                 footer: {
                   text: "THERE IS A HIGH CHANCE THEY BOUGHT THE GAMEPASS BUT DIDN'T GET THE ITEM.",
@@ -364,9 +359,11 @@ module.exports = {
         const processing_token = require("crypto")
           .randomBytes(16)
           .toString("hex");
+
         const gamepass_info = await getGamePassProductInfo(
           listed_doc.gamepassId
         );
+
         if (gamepass_info.PriceInRobux !== listed_doc.price) {
           redis_client.del(unique_token);
           robux_market.deleteOne({ itemId: itemid, serial });

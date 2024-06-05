@@ -89,8 +89,6 @@ if (cluster.isMaster) {
               await endpoint.run(req, res, client);
             }
           );
-
-          console.log(`Listening on /${relativePath}/${endpoint.path}`);
         }
       });
     });
