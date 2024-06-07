@@ -15,48 +15,47 @@ if (cluster.isMaster) {
   });
 
   process.on("SIGINT", () => {
-    isShuttingDown = true;
     console.log("\nReceived SIGINT. Shutting down gracefully...");
 
     for (const id in cluster.workers) {
       cluster.workers[id].process.kill("SIGINT");
       console.log(`Killed worker ${id}`);
     }
+    process.exit(0);
   });
+
 } else {
   const express = require("express");
-  const fs = require("fs");
+  const fs = require("fs").promises;
   const path = require("path");
   const mongodb = require("mongodb");
   const app = express();
   const port = 3030;
 
   const connection_string = process.env.MONGO_URI;
-  const client = new mongodb.MongoClient(connection_string);
+  const client = new mongodb.MongoClient(connection_string, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
   const auth_key = process.env.API_AUTH;
 
   app.use(require("cors")());
   app.use(express.json());
 
-  function begin_listening(dir) {
-    fs.readdir(dir, (err, files) => {
-      if (err) {
-        return;
-      }
-
-      files.forEach((file) => {
+  async function begin_listening(dir) {
+    try {
+      const files = await fs.readdir(dir);
+      for (const file of files) {
         const filePath = path.join(dir, file);
-        const stats = fs.statSync(filePath);
+        const stats = await fs.stat(filePath);
 
         if (stats.isDirectory()) {
-          begin_listening(filePath);
+          await begin_listening(filePath);
         } else if (stats.isFile()) {
           const endpoint = require(filePath);
           const relativePath = path
             .relative(path.join(__dirname, "endpoints"), filePath)
-            .split(".")
-            .slice(0, -1)
-            .join(".");
+            .replace(/\.[^/.]+$/, "");
           app[endpoint.method.toLowerCase()](
             `/${relativePath}/${endpoint.path}`,
             async (req, res) => {
@@ -77,22 +76,36 @@ if (cluster.isMaster) {
                 req.headers["user-agent"] == "Roblox/Linux";
 
               if (is_roblox_server) {
-                const collection = client
-                  .db("ArcadeHaven")
-                  .collection("roblox_requests");
-                collection.updateOne(
-                  { ip },
-                  { $inc: { requests: 1 } },
-                  { upsert: true }
-                );
+                try {
+                  const collection = client
+                    .db("ArcadeHaven")
+                    .collection("roblox_requests");
+                  await collection.updateOne(
+                    { ip },
+                    { $inc: { requests: 1 } },
+                    { upsert: true }
+                  );
+                } catch (err) {
+                  console.error("Error updating Roblox requests:", err);
+                }
               }
 
-              await endpoint.run(req, res, client);
+              try {
+                await endpoint.run(req, res, client);
+              } catch (err) {
+                console.error("Error running endpoint:", err);
+                res.status(500).json({
+                  status: "error",
+                  error: "Internal Server Error",
+                });
+              }
             }
           );
         }
-      });
-    });
+      }
+    } catch (err) {
+      console.error(`Error reading directory ${dir}:`, err);
+    }
   }
 
   app.get("/", (req, res) => {
@@ -101,8 +114,14 @@ if (cluster.isMaster) {
     });
   });
 
-  begin_listening(path.join(__dirname, "endpoints"));
-  app.listen(port, () => {
-    console.log(`Worker ${process.pid} is running on port ${port}`);
+  client.connect().then(async () => {
+    console.log("Connected to MongoDB");
+    await begin_listening(path.join(__dirname, "endpoints"));
+    app.listen(port, () => {
+      console.log(`Worker ${process.pid} is running on port ${port}`);
+    });
+  }).catch((err) => {
+    console.error("Failed to connect to MongoDB:", err);
+    process.exit(1);
   });
 }
