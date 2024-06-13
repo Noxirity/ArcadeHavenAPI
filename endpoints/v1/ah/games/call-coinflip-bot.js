@@ -30,13 +30,21 @@ module.exports = {
     let valueToMatch = data.value;
     let maxItemsAllowed = data.maxItems;
 
+    // maximum value is 200 million
+    if (valueToMatch > 200000000) {
+      return res.status(400).send({
+        error: "Value too high",
+      });
+    }
+
+
     const processItems = async () => {
       docs.forEach((item) => {
         const userSerials = item.serials
           .map((serial_info, index) =>
             serial_info &&
-            serial_info.u === parseInt(userid) &&
-            !serial_info.locked
+              serial_info.u === parseInt(userid) &&
+              !serial_info.locked
               ? (index + 1).toString()
               : null
           )
