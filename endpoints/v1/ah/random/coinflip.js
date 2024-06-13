@@ -23,18 +23,7 @@ module.exports = {
     const string = `${id1}|${id2}|${random_secret}`;
     const hash = crypto.createHash("sha256").update(string).digest("hex");
     const decimal = parseInt(hash.slice(-1), 16);
-
-    let result;
-    if ((id2.match(/-/g) || []).length === 4) {
-      const rigged_random = Math.floor(Math.random() * 10);
-      if (rigged_random < 4) {
-        result = 1;
-      } else {
-        result = 2;
-      }
-    } else {
-      result = (decimal % 2) + 1;
-    }
+    const result = (decimal % 2) + 1;
 
     res.status(200).json({
       status: "success",
