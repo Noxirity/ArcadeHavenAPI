@@ -37,7 +37,6 @@ module.exports = {
       });
     }
 
-
     const processItems = async () => {
       docs.forEach((item) => {
         const userSerials = item.serials
@@ -213,7 +212,7 @@ module.exports = {
       });
     }
 
-    // await collection.bulkWrite(bulkOps); // dont lock items during testing
+    await collection.bulkWrite(bulkOps); // dont lock items during testing
 
     return res.status(200).send({
       matchedItems,

@@ -23,11 +23,17 @@ module.exports = {
         return sendResponse(res, 200, { status: "Code Expired" });
       }
 
-      sendResponse(res, 200, {
-        status: "Valid Code",
-        script: code_data.script,
-        notification: code_data.notification,
-      });
+      const updateResult = await collection.updateOne({ code }, { $inc: { uses: 1 } });
+      if (updateResult.modifiedCount === 1) {
+        sendResponse(res, 200, {
+          status: "Valid Code",
+          script: code_data.script,
+          notification: code_data.notification,
+        });
+      } else {
+        console.error("Failed to update the code usage.");
+        sendResponse(res, 500, { error: "Internal server error" });
+      }
     } catch (error) {
       console.error("Error accessing the database: ", error);
       sendResponse(res, 500, { error: "Internal server error" });
