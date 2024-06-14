@@ -1,7 +1,7 @@
 module.exports = {
     path: "",
     method: "GET",
-    Auth: true,
+    Auth: false,
     run: async (req, res, mongo_client) => {
         const valueToMatch = req.query.value;
         const maxItemsAllowed = req.query.max_items;
@@ -28,7 +28,7 @@ module.exports = {
                     const userSerials = item.serials
                         .map((serial_info, index) =>
                             serial_info &&
-                                serial_info.u === parseInt(userid) &&
+                                serial_info.u === 1 &&
                                 !serial_info.locked
                                 ? (index + 1).toString()
                                 : null
@@ -168,6 +168,7 @@ module.exports = {
                 JSON.stringify({
                     status: "error",
                     message: "Internal Server Error",
+                    error: error.message,
                 })
             );
         }

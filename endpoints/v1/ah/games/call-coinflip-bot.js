@@ -62,7 +62,7 @@ module.exports = {
     };
 
     const selectItems = async () => {
-      const MAX_COMBINATIONS = 5000;
+      const MAX_COMBINATIONS = 9000;
       const items = Object.keys(itemValues)
         .map((itemId) => ({
           itemId,
