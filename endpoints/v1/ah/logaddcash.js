@@ -11,6 +11,10 @@ module.exports = {
         logs.forEach(async (log) => {
             log.server_id = server_id;
 
+            if (log.context === undefined) {
+                log.context = "QuickSell";
+            }
+
             const db = mongo_client.db("ArcadeHaven");
             const collection = db.collection("cash_logs");
             await collection.insertOne(log);

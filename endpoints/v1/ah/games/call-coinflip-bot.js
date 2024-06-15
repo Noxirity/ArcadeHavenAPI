@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const recent_cache = [];
 
 module.exports = {
   path: "",
@@ -9,6 +10,19 @@ module.exports = {
     let data = req.query.data;
     data = Buffer.from(data, "base64").toString("utf-8");
     data = JSON.parse(data);
+
+    // check if the request is in the cache
+    let cache = recent_cache.find((cache) => cache[0] === req.query.data);
+    if (cache) {
+      const date = new Date(cache[1]);
+      if (Date.now() - date.getTime() < 300000) {
+        return res.status(400).send({
+          error: "Request already processed",
+        });
+      }
+
+      recent_cache.splice(recent_cache.indexOf(cache), 1);
+    }
 
     const db = mongo_client.db("ArcadeHaven");
     const collection = db.collection("items");
@@ -30,7 +44,7 @@ module.exports = {
     let valueToMatch = data.value;
     let maxItemsAllowed = data.maxItems;
 
-    if (valueToMatch > 60000000) {
+    if (valueToMatch > 150000000) {
       return res.status(400).send({
         error: "Value too high",
       });
@@ -170,22 +184,7 @@ module.exports = {
       serials: matchedItems[itemId],
     }));
 
-    let bulkOps = itemsToUpdate.map((item) => {
-      let updates = {};
-      item.serials.forEach((serial) => {
-        updates[`serials.${parseInt(serial) - 1}.locked`] = true;
-      });
-
-      return {
-        updateOne: {
-          filter: { itemId: Number(item.itemId) },
-          update: { $set: updates },
-        },
-      };
-    });
-
     let itemsToCheck = itemsToUpdate.map((item) => item.itemId);
-    console.log(itemsToCheck);
     let docsToCheck = await collection
       .find(
         {
@@ -195,7 +194,6 @@ module.exports = {
           serials: {
             $elemMatch: {
               u: parseInt(userid),
-              $or: [{ locked: { $exists: false } }, { locked: false }],
             },
           },
         },
@@ -206,12 +204,16 @@ module.exports = {
       .toArray();
 
     if (docsToCheck.length !== itemsToCheck.length) {
+      recent_cache.push([req.query.data, Date.now()])
+
       return res.status(400).send({
         error: "Some items are no longer available",
       });
     }
 
-    await collection.bulkWrite(bulkOps); // dont lock items during testing
+    if (totalMatchedItems === 0) {
+      recent_cache.push([req.query.data, Date.now()])
+    }
 
     return res.status(200).send({
       matchedItems,
