@@ -17,6 +17,8 @@ module.exports = {
   method: "POST",
   Auth: true,
   run: async (req, res, mongo_client) => {
+    // return res.status(404).send("This endpoint is disabled");
+
     const { user_id, item, token } = req.body;
     let [itemid, serial] = item;
     const unique_token = Buffer.from(JSON.stringify(item)).toString("base64");
@@ -171,14 +173,14 @@ module.exports = {
 
         await robux_market.updateOne(
           { itemId: "analytics" },
-          { $inc: { total_sales: 1, total_robux: listed_doc.price } },
+          { $inc: { total_sales: 1, total_robux: listed_doc.price, game_raised: listed_doc.price * 0.1 } },
           { upsert: true }
         );
 
         const user_analytics = await database.collection("user_analytics");
         const buyer_analytics = await user_analytics.findOneAndUpdate(
           { userId: user_id },
-          { $inc: { total_spent: listed_doc.price } },
+          { $inc: { total_spent: listed_doc.price, game_raised: listed_doc.price * 0.1 } },
           { returnDocument: "after", upsert: true }
         );
         const seller_analytics = await user_analytics.findOneAndUpdate(

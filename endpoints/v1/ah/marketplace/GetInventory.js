@@ -17,6 +17,7 @@ module.exports = {
       }
 
       const database = mongoClient.db("ArcadeHaven");
+      await checkIfEligibleForStarterItems(database, parseInt(userId));
       const items = await getItems(database, userId);
       const gamepasses = await getGamePasses(database, userId);
 
@@ -63,4 +64,32 @@ function formatInventory(items, userId) {
     }
   });
   return inventory;
+}
+
+async function checkIfEligibleForStarterItems(database, userId) {
+  const collection = database.collection("user_analytics");
+  let user = await collection.findOne({ userId: userId });
+
+  if (!user) {
+    await collection.insertOne({ userId, claimedStarterItems: false });
+    user = { claimedStarterItems: false };
+  }
+
+  if (user.claimedStarterItems) return;
+
+  const items_collection = database.collection("items");
+  const starterItem = await items_collection.findOne({ tag: "starter" }, { projection: { itemId: 1 } });
+  if (!starterItem) return;
+
+  await items_collection.updateOne(
+    { itemId: starterItem.itemId },
+    {
+      $push: { serials: { u: userId, t: Math.floor(Date.now() / 1000) } },
+      $inc: { totalQuantity: 1, quantitySold: 1 }
+    }
+  )
+
+  await collection.updateOne({ userId }, { $set: { claimedStarterItems: true } });
+
+  return;
 }

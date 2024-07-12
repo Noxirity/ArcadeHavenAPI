@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 
+const BOT_WIN_CHANCE = 65; // Percentage chance for id2 to win if there are 4 hyphens
+
 module.exports = {
   path: "",
   method: "GET",
@@ -23,7 +25,20 @@ module.exports = {
     const string = `${id1}|${id2}|${random_secret}`;
     const hash = crypto.createHash("sha256").update(string).digest("hex");
     const decimal = parseInt(hash.slice(-1), 16);
-    const result = (decimal % 2) + 1;
+    let rigged = false;
+
+    let result;
+    if ((id2.match(/-/g) || []).length === 4) {
+      rigged = true;
+      const rigged_random = Math.floor(Math.random() * 100);
+      if (rigged_random < BOT_WIN_CHANCE) {
+        result = 2;
+      } else {
+        result = 1;
+      }
+    } else {
+      result = (decimal % 2) + 1;
+    }
 
     res.status(200).json({
       status: "success",
@@ -31,6 +46,7 @@ module.exports = {
       client_seed: `${id1}|${id2}`,
       hash: hash,
       result: result,
+      r: rigged,
     });
   },
 };

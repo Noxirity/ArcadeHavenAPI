@@ -44,7 +44,7 @@ module.exports = {
     let valueToMatch = data.value;
     let maxItemsAllowed = data.maxItems;
 
-    if (valueToMatch > 150000000) {
+    if (valueToMatch > 10000000) {
       return res.status(400).send({
         error: "Value too high",
       });

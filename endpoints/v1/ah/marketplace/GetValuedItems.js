@@ -11,7 +11,7 @@ module.exports = {
 
             let docs = await collection
                 .find(
-                    { "serials.u": 1, value: { $gt: 0 } },
+                    { "serials.u": 1, value: { $gt: 0, $lt: 80000000 } },
                     {
                         projection: { "serials.u": 1, itemId: 1, value: 1, name: 1 },
                     }
