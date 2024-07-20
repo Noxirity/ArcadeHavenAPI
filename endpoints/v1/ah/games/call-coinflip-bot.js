@@ -26,6 +26,8 @@ module.exports = {
 
     const db = mongo_client.db("ArcadeHaven");
     const collection = db.collection("items");
+    const settings = db.collection("game_settings");
+    const setting_doc = await settings.findOne({ tag: "private_settings" });
 
     let docs = await collection
       .find(
@@ -43,8 +45,9 @@ module.exports = {
 
     let valueToMatch = data.value;
     let maxItemsAllowed = data.maxItems;
+    const max_value = setting_doc.bot_max_value || 1000000;
 
-    if (valueToMatch > 10000000) {
+    if (valueToMatch > max_value) {
       return res.status(400).send({
         error: "Value too high",
       });
@@ -75,7 +78,7 @@ module.exports = {
     };
 
     const selectItems = async () => {
-      const MAX_COMBINATIONS = 9000;
+      const MAX_COMBINATIONS = 40000;
       const items = Object.keys(itemValues)
         .map((itemId) => ({
           itemId,

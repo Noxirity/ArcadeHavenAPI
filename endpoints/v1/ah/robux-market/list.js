@@ -3,12 +3,17 @@ const { getGamePassProductInfo } = require("noblox.js");
 // Database operations
 async function getRobuxMarket(mongo_client) {
   const database = await mongo_client.db("ArcadeHaven");
-  return await database.collection("robux_market");
+  return database.collection("robux_market");
 }
 
 async function getItems(mongo_client) {
   const database = await mongo_client.db("ArcadeHaven");
   return await database.collection("items");
+}
+
+async function getSettings(mongo_client) {
+  const database = await mongo_client.db("ArcadeHaven");
+  return await database.collection("game_settings");
 }
 
 // Input validation
@@ -36,6 +41,10 @@ module.exports = {
 
       const robux_market = await getRobuxMarket(mongo_client);
       const items = await getItems(mongo_client);
+      const settings = await getSettings(mongo_client);
+      const settings_doc = await settings.findOne({
+        tag: "global_settings",
+      });
 
       const listed_doc = await robux_market.findOne({ itemId: itemid, serial });
       if (listed_doc) {
@@ -49,10 +58,12 @@ module.exports = {
       const listed_count = await robux_market.countDocuments({
         userId: user_id,
       });
-      if (listed_count >= 10) {
+      if (listed_count >= (settings_doc.robux_market_max || 10)) {
         return res.status(400).json({
           status: "error",
-          error: "You can only list 10 items at a time",
+          error: `You can only list ${
+            settings_doc.robux_market_max || 10
+          } items at a time`,
         });
       }
 
@@ -101,7 +112,7 @@ module.exports = {
       if (item_doc.value) {
         const valuePerRobux = (item_doc.value || item_doc.rap) / price;
         const ratePer10k = 10000 / valuePerRobux;
-        const minimum_rate = 0.35;
+        const minimum_rate = settings_doc.robux_market_rate || 0.2;
         if (ratePer10k < minimum_rate) {
           console.log("invalid rate");
           return res.status(400).json({
